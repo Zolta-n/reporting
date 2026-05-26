@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reporting App</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>Reporting App</h1>
+    <p class="tagline">Collect, deduplicate, report.</p>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab-btn active" data-tab="add" role="tab">Add Entry</button>
+    <button class="tab-btn" data-tab="browse" role="tab">Browse</button>
+    <button class="tab-btn" data-tab="reports" role="tab">Reports</button>
+    <button class="tab-btn" data-tab="template" role="tab">Template</button>
+  </nav>
+
+  <!-- ===== ADD ENTRY ===== -->
+  <section id="tab-add" class="tab-panel active">
+    <div class="sub-tabs">
+      <button class="sub-tab-btn active" data-sub="note">Note</button>
+      <button class="sub-tab-btn" data-sub="email">Email</button>
+      <button class="sub-tab-btn" data-sub="file">File</button>
+    </div>
+
+    <!-- Note -->
+    <div id="sub-note" class="sub-panel active">
+      <form id="form-note" class="entry-form">
+        <label>Content
+          <textarea id="note-content" rows="6" placeholder="Type or paste your note here…" required></textarea>
+        </label>
+        <div class="form-row">
+          <label>Tags (comma-separated)
+            <input type="text" id="note-tags" placeholder="e.g. project, meeting" />
+          </label>
+          <label>Date override
+            <input type="datetime-local" id="note-date" />
+          </label>
+        </div>
+        <button type="submit" class="btn-primary">Add Note</button>
+      </form>
+    </div>
+
+    <!-- Email -->
+    <div id="sub-email" class="sub-panel">
+      <form id="form-email" class="entry-form">
+        <label>Paste email content (raw headers + body)
+          <textarea id="email-content" rows="10" placeholder="Paste the full email here (From:, Subject:, body…)" required></textarea>
+        </label>
+        <div class="form-row">
+          <label>Sender (source)
+            <input type="text" id="email-source" placeholder="sender@example.com" />
+          </label>
+          <label>Tags (comma-separated)
+            <input type="text" id="email-tags" placeholder="e.g. client, urgent" />
+          </label>
+          <label>Date override
+            <input type="datetime-local" id="email-date" />
+          </label>
+        </div>
+        <button type="submit" class="btn-primary">Add Email</button>
+        <p class="hint">Or upload an .eml file in the <strong>File</strong> tab.</p>
+      </form>
+    </div>
+
+    <!-- File -->
+    <div id="sub-file" class="sub-panel">
+      <form id="form-file" class="entry-form" enctype="multipart/form-data">
+        <label class="file-drop-zone" id="drop-zone">
+          <span id="drop-label">Drop a file here or <u>click to browse</u></span>
+          <input type="file" id="file-input" accept=".txt,.pdf,.docx,.eml,.csv,.md,.png,.jpg,.jpeg,.webp,.gif" hidden />
+        </label>
+        <p class="hint screenshot-hint">📷 Screenshots (.png .jpg .jpeg) are processed with AI vision to extract text — requires API key.</p>
+        <div class="form-row">
+          <label>Tags (comma-separated)
+            <input type="text" id="file-tags" placeholder="e.g. report, q2" />
+          </label>
+          <label>Date override
+            <input type="datetime-local" id="file-date" />
+          </label>
+        </div>
+        <button type="submit" class="btn-primary">Upload File</button>
+        <p class="hint">Supported: .txt .pdf .docx .eml .csv .md .png .jpg .jpeg</p>
+      </form>
+    </div>
+
+    <div id="add-status" class="status-msg" aria-live="polite"></div>
+  </section>
+
+  <!-- ===== BROWSE ===== -->
+  <section id="tab-browse" class="tab-panel">
+    <div class="browse-controls">
+      <label>Type
+        <select id="filter-type">
+          <option value="">All</option>
+          <option value="text">Note</option>
+          <option value="email">Email</option>
+          <option value="file">File</option>
+        </select>
+      </label>
+      <label>From
+        <input type="date" id="filter-start" />
+      </label>
+      <label>To
+        <input type="date" id="filter-end" />
+      </label>
+      <button id="btn-refresh" class="btn-secondary">Refresh</button>
+    </div>
+
+    <div id="entries-count" class="count-line"></div>
+    <div id="entries-list" class="entries-list"></div>
+  </section>
+
+  <!-- ===== REPORTS ===== -->
+  <section id="tab-reports" class="tab-panel">
+    <div class="report-block">
+      <h2>Weekly Report</h2>
+      <div class="form-row">
+        <label>Start date
+          <input type="date" id="weekly-start" />
+        </label>
+        <label>End date
+          <input type="date" id="weekly-end" />
+        </label>
+      </div>
+      <p class="hint">Leave blank to use the last 7 days.</p>
+      <button id="btn-weekly" class="btn-primary">Generate Weekly Report</button>
+    </div>
+
+    <div class="report-block">
+      <h2>Monthly Report</h2>
+      <div class="form-row">
+        <label>Year
+          <input type="number" id="monthly-year" min="2020" max="2099" />
+        </label>
+        <label>Month
+          <select id="monthly-month">
+            <option value="1">January</option><option value="2">February</option>
+            <option value="3">March</option><option value="4">April</option>
+            <option value="5">May</option><option value="6">June</option>
+            <option value="7">July</option><option value="8">August</option>
+            <option value="9">September</option><option value="10">October</option>
+            <option value="11">November</option><option value="12">December</option>
+          </select>
+        </label>
+      </div>
+      <button id="btn-monthly" class="btn-primary">Generate Monthly Report</button>
+    </div>
+
+    <div id="report-status" class="status-msg" aria-live="polite"></div>
+
+    <h2 class="section-title">Generated Reports</h2>
+    <div id="reports-list" class="reports-list"></div>
+  </section>
+
+  <!-- ===== TEMPLATE ===== -->
+  <section id="tab-template" class="tab-panel">
+    <div id="template-status-banner" class="template-banner"></div>
+
+    <h2>Upload Monthly Template</h2>
+    <p>Upload a <code>.md</code>, <code>.html</code>, or <code>.docx</code> file containing placeholder tokens.</p>
+    <form id="form-template" class="entry-form">
+      <label class="file-drop-zone" id="template-drop-zone">
+        <span id="template-drop-label">Drop a template file here or <u>click to browse</u></span>
+        <input type="file" id="template-file-input" accept=".md,.html,.docx" hidden />
+      </label>
+      <button type="submit" class="btn-primary">Upload Template</button>
+    </form>
+
+    <div id="template-msg" class="status-msg" aria-live="polite"></div>
+
+    <div class="template-info">
+      <h3>Available Placeholder Tokens</h3>
+      <table class="placeholder-table">
+        <thead><tr><th>Token</th><th>Replaced with</th></tr></thead>
+        <tbody>
+          <tr><td><code>{{month}}</code></td><td>Full month name and year (e.g. "May 2026")</td></tr>
+          <tr><td><code>{{entries}}</code></td><td>Bulleted list of all entries for the month</td></tr>
+          <tr><td><code>{{summary}}</code></td><td>One-sentence AI summary of all entries</td></tr>
+          <tr><td><code>{{topic_summary}}</code></td><td>Per-tag topic summaries (one sentence each)</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Download Current Template</h3>
+      <button id="btn-download-template" class="btn-secondary">Download</button>
+    </div>
+  </section>
+
+  <script src="app.js"></script>
+</body>
+</html>
