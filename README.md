@@ -59,3 +59,61 @@ reports/          Generated report files (immutable snapshots)
 - All data is local. The only external call is the Anthropic API for summarisation.
 - Reports are never overwritten — each generation appends a timestamp to the filename.
 - See `SPEC.md` for implementation decisions and open questions.
+
+## Docker / Synology Container
+
+A container can be built from the repo root with the included `Dockerfile`.
+
+Build the image:
+
+```bash
+docker build -t reporting-app .
+```
+
+Run the container:
+
+```bash
+docker run -d \
+  --name reporting-app \
+  -p 8000:8000 \
+  -v "$PWD/data:/app/data" \
+  -v "$PWD/reports:/app/reports" \
+  -v "$PWD/templates:/app/templates" \
+  -v "$PWD/.env:/app/.env" \
+  reporting-app
+```
+
+If you prefer not to mount `.env`, set the Anthropic key directly:
+
+```bash
+docker run -d \
+  --name reporting-app \
+  -p 8000:8000 \
+  -v "$PWD/data:/app/data" \
+  -v "$PWD/reports:/app/reports" \
+  -v "$PWD/templates:/app/templates" \
+  -e ANTHROPIC_API_KEY=sk-... \
+  reporting-app
+```
+
+Synology Container Manager setup:
+
+1. Create a new container from the built image or point it at this Dockerfile.
+2. Set the container port `8000` to the host port you want (for example `8000`).
+3. Mount host folders into the container:
+   - host `data` → container `/app/data`
+   - host `reports` → container `/app/reports`
+   - host `templates` → container `/app/templates`
+   - optional host `.env` → container `/app/.env`
+4. Add `ANTHROPIC_API_KEY` as an environment variable if you do not mount `.env`.
+5. Start the container and open `http://<synology-ip>:8000`.
+
+Alternatively, use Docker Compose from the repo root:
+
+```bash
+docker compose up -d --build
+```
+
+This creates the same mounted volumes and automatically loads `.env`.
+
+The app will create `data/uploads`, `templates`, and `reports` if needed at startup.

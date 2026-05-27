@@ -1,0 +1,15 @@
+version: "3.9"
+
+services:
+  reporting-app:
+    build: .
+    container_name: reporting-app
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+      - ./reports:/app/reports
+      - ./templates:/app/templates
