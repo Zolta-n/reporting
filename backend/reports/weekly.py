@@ -103,7 +103,7 @@ def generate_weekly_report(
             f"- {_fmt_date(e.date_stamp)} — {e.source}: {e.content[:200]}"
             for e in items
         ]
-        return "### Files\n" + "\n".join(lines)
+        return "### Files\n\n" + "\n\n".join(lines)
 
     def _emails_section() -> str:
         items = by_type.get("email", [])
@@ -119,14 +119,14 @@ def generate_weekly_report(
             lines.append(
                 f"- {_fmt_date(e.date_stamp)} — {e.source}: {subject} — {e.content[:200]}"
             )
-        return "### Emails\n" + "\n".join(lines)
+        return "### Emails\n\n" + "\n\n".join(lines)
 
     def _notes_section() -> str:
         items = by_type.get("text", [])
         if not items:
             return ""
         lines = [f"- {_fmt_date(e.date_stamp)}: {e.content[:200]}" for e in items]
-        return "### Notes\n" + "\n".join(lines)
+        return "### Notes\n\n" + "\n\n".join(lines)
 
     parts = [s for s in [_files_section(), _emails_section(), _notes_section()] if s]
     entries_block = "\n\n".join(parts) if parts else "_No entries for this period._"
@@ -143,7 +143,7 @@ def generate_weekly_report(
         f"- **{tag}**: {_get_summary(snips, topic=tag)}"
         for tag, snips in tag_groups.items()
     ]
-    themes_block = "\n".join(theme_lines) if theme_lines else "_No tagged themes._"
+    themes_block = "\n\n".join(theme_lines) if theme_lines else "_No tagged themes._"
 
     report = f"""# Weekly Report — {week_label} ({date_range})
 
@@ -155,6 +155,7 @@ def generate_weekly_report(
 {entries_block}
 
 ## Key Themes
+
 {themes_block}
 """
 

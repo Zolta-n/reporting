@@ -36,6 +36,14 @@ def _load_style() -> str:
     return STYLE_PATH.read_text(encoding="utf-8") if STYLE_PATH.exists() else ""
 
 
+def _normalize_paragraphs(text: str) -> str:
+    """Promote single newlines to double so every topic gets a blank line."""
+    text = text.strip()
+    text = re.sub(r"\n{3,}", "\n\n", text)        # collapse 3+ → 2
+    text = re.sub(r"(?<!\n)\n(?!\n)", "\n\n", text)  # single → double
+    return text
+
+
 def _categorize_entries(entries: list) -> dict[str, str]:
     """
     One AI call: categorize all entries into the 5 report sections.
@@ -94,7 +102,7 @@ def _categorize_entries(entries: list) -> dict[str, str]:
         text = text.strip()
 
         data = json.loads(text)
-        return {k: str(data.get(k, "(no entries)")).strip() for k in SECTIONS}
+        return {k: _normalize_paragraphs(str(data.get(k, "(no entries)"))) for k in SECTIONS}
 
     except Exception:
         return {**empty, "key_projects": raw[:1000]}
