@@ -73,16 +73,19 @@ def _categorize_entries(entries: list) -> dict[str, str]:
         "Categorize and summarize the following entries into exactly these 5 sections:\n"
         f"{section_list}\n\n"
         "Rules:\n"
-        "- EACH distinct topic or project MUST be its own paragraph\n"
-        "- Paragraphs MUST be separated by the literal characters \\n\\n in the JSON string\n"
-        "- Each paragraph: 1-2 sentences, executive language, no bullet points\n"
+        "- EACH distinct topic or project MUST be a separate string in a JSON array\n"
+        "- Each string: 1-2 sentences, executive language, no bullet points\n"
         "- No person names. Keep company/customer names and figures.\n"
         "- An entry may contribute to more than one section if relevant.\n"
-        "- If no entries fit a section, write: (no entries)\n"
+        "- If no entries fit a section, use the array: [\"(no entries)\"]\n"
         f"Style guide:\n{style}\n\n"
-        "Example of correct paragraph separation in JSON:\n"
-        '"key_projects": "First topic sentence here.\\n\\nSecond topic sentence here.\\n\\nThird topic here."\n\n'
-        'Return ONLY valid JSON: {"key_projects":"...","what_was_good":"...","market_competition":"...","less_satisfactory":"...","news":"..."}\n\n'
+        "Example of correct format:\n"
+        '{"key_projects":["First topic sentence.","Second topic sentence.","Third topic."],'
+        '"what_was_good":["One good outcome here."],'
+        '"market_competition":["Market topic here."],'
+        '"less_satisfactory":["Issue here."],'
+        '"news":["News item here."]}\n\n'
+        "Return ONLY valid JSON where every section value is an array of strings.\n\n"
         f"Entries:\n{raw}"
     )
 
@@ -102,7 +105,15 @@ def _categorize_entries(entries: list) -> dict[str, str]:
         text = text.strip()
 
         data = json.loads(text)
-        return {k: _normalize_paragraphs(str(data.get(k, "(no entries)"))) for k in SECTIONS}
+        result = {}
+        for k in SECTIONS:
+            val = data.get(k, ["(no entries)"])
+            if isinstance(val, list):
+                joined = "\n\n".join(s.strip() for s in val if s.strip())
+                result[k] = joined or "(no entries)"
+            else:
+                result[k] = _normalize_paragraphs(str(val))
+        return result
 
     except Exception:
         return {**empty, "key_projects": raw[:1000]}
