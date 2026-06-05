@@ -4,71 +4,102 @@
 
 ---
 
-> **Important:** The Dockerfile uses `COPY . .` — source files are baked into the image.
-> A full rebuild is required for every code change. Restarting the container alone is not sufficient.
+## Automated deployment (normal workflow)
+
+Every push to GitHub triggers an automatic build and deploy:
+
+```
+git push → GitHub Actions builds image → ghcr.io registry updated
+                                       → Watchtower on NAS detects new image
+                                       → Container restarts automatically
+```
+
+**You only need to push. Nothing else.**
+
+Watchtower polls the registry every 5 minutes, so the NAS picks up changes within 5 minutes of a push.
 
 ---
 
-## Step 1 — Download the changed files from Codespaces
+## One-time NAS setup (Watchtower)
 
-Open the project in Codespaces. In the VS Code file explorer, right-click each changed file and choose **Download**. Save to your local machine.
+Do this once. After this, all future updates are automatic.
 
-Common files to update:
+### Step 1 — Make the GitHub package public
 
-| File | Location on NAS |
-|---|---|
-| `backend/reports/weekly.py` | `docker/reporting/backend/reports/` |
-| `backend/reports/monthly.py` | `docker/reporting/backend/reports/` |
-| `backend/main.py` | `docker/reporting/backend/` |
-| `frontend/app.js` | `docker/reporting/frontend/` |
-| `frontend/index.html` | `docker/reporting/frontend/` |
+1. Go to `https://github.com/Zolta-n/reporting/pkgs/container/reporting`
+2. Click **Package settings**
+3. Scroll to **Danger Zone** → Change visibility → **Public**
+4. Confirm
 
----
+This lets Watchtower pull the image without credentials.
 
-## Step 2 — Upload to the NAS via File Station
+### Step 2 — Add Watchtower as a Container Manager project
 
-1. Log into DSM at `znponty.cz5.quickconnect.to`
-2. Open **File Station**
-3. Navigate to `docker/reporting/` and into the subfolder matching the changed file
-4. Click **Upload** → select the downloaded file → confirm **Overwrite**
+1. Log into DSM → open **Container Manager → Project → Create**
+2. Name: `watchtower`
+3. Paste this as the compose content:
 
----
+```yaml
+version: "3.9"
 
-## Step 3 — Rebuild and restart via Container Manager
+services:
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_POLL_INTERVAL=300
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_INCLUDE_STOPPED=false
+```
 
-Open **Container Manager**.
+4. On **Web portal settings** — leave checkbox **unchecked**
+5. Click **Done**
 
-**If a `reporting` project already exists under Project:**
+### Step 3 — Update the reporting project on the NAS
 
-1. Click the `reporting` project
-2. Click **Action → Rebuild**
-3. Click **Start**
+This is the last manual update. After this, Watchtower handles everything.
 
-**If no project exists (app running as standalone Container):**
-
-1. Go to **Container** → stop and delete the existing reporting container
-2. Go to **Project → Create**
-3. Fill in:
+1. In File Station, navigate to `docker/reporting/` and upload the updated `docker-compose.yml` (the one that now uses `image: ghcr.io/zolta-n/reporting:latest` instead of `build: .`)
+2. In Container Manager → delete the existing reporting container/project
+3. Create new Project:
    - Name: `reporting`
    - Path: `/volume1/docker/reporting`
-4. Container Manager detects `docker-compose.yml` automatically — click **Next**
-5. On **Web portal settings** — leave checkbox **unchecked** → click **Next**
-6. Click **Done** — image builds and container starts automatically
+4. Web portal settings → leave unchecked → Done
 
 ---
 
-## Step 4 — Verify
+## Verifying a deployment
 
-Open `https://report.businessintels.com` and confirm the app loads. Generate a report to verify the change is live.
+After pushing, check the build completed:
+
+- GitHub → Actions tab → confirm the workflow shows a green tick
+- Wait up to 5 minutes for Watchtower to pull and restart
+- Open `https://report.businessintels.com` to confirm
 
 ---
 
-## Quick Reference
+## Quick reference
 
 | What | Where |
 |---|---|
+| GitHub repo | `https://github.com/Zolta-n/reporting` |
+| Container image | `ghcr.io/zolta-n/reporting:latest` |
+| GitHub Actions | Repo → Actions tab |
 | DSM login | `znponty.cz5.quickconnect.to` |
-| App source on NAS | `/volume1/docker/reporting/` |
 | App URL | `https://report.businessintels.com` |
 | App port | `8000` |
-| Cloudflare tunnel | Container Manager → Project → `cloudflare` |
+| Watchtower poll interval | every 5 minutes |
+
+---
+
+## Local development (no NAS)
+
+To build and run locally:
+
+```bash
+docker build -t reporting-local .
+docker run -p 8000:8000 --env-file .env reporting-local
+```

@@ -2,7 +2,7 @@ version: "3.9"
 
 services:
   reporting-app:
-    build: .
+    image: ghcr.io/zolta-n/reporting:latest
     container_name: reporting-app
     ports:
       - "8000:8000"
