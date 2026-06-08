@@ -131,9 +131,6 @@ function setupCleanup() {
   });
 }
 
-setupDictation();
-setupCleanup();
-
 // ── Tab switching ──────────────────────────────────────────────────────────
 
 document.querySelectorAll(".tab-btn").forEach(btn => {
@@ -611,3 +608,7 @@ document.getElementById("btn-download-template").addEventListener("click", async
     alert(`Download failed: ${err.message}`);
   }
 });
+
+// ── Dictation + cleanup init (last, so any crash can't break tabs/forms) ──
+try { setupDictation(); } catch (_) {}
+try { setupCleanup();   } catch (_) {}
