@@ -306,6 +306,10 @@ const now = new Date();
 document.getElementById("monthly-year").value = now.getFullYear();
 document.getElementById("monthly-month").value = now.getMonth() + 1;
 
+const SVG_EYE = `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M1 10s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6z"/><circle cx="10" cy="10" r="2.5"/></svg>`;
+const SVG_DOWNLOAD = `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3v10M6 9l4 4 4-4"/><path d="M3 15h14"/></svg>`;
+const SVG_TRASH = `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h12M8 6V4h4v2M7 6l1 10h4l1-10"/></svg>`;
+
 async function loadReports() {
   reportsList.innerHTML = '<div class="empty-state"><span class="spinner"></span> Loading…</div>';
   try {
@@ -315,15 +319,75 @@ async function loadReports() {
       return;
     }
     reportsList.innerHTML = reports.map(r => `
-      <div class="report-item">
-        <a href="/reports/${encodeURIComponent(r.filename)}" download="${escapeHtml(r.filename)}">
-          ${escapeHtml(r.filename)}
-        </a>
+      <div class="report-item" data-filename="${escapeHtml(r.filename)}">
+        <span class="report-name">
+          <a href="/reports/${encodeURIComponent(r.filename)}" download="${escapeHtml(r.filename)}">${escapeHtml(r.filename)}</a>
+        </span>
         <span class="report-size">${fmtSize(r.size)}</span>
+        <span class="report-actions">
+          <button class="icon-btn preview" title="Preview" data-action="preview" data-filename="${escapeHtml(r.filename)}">${SVG_EYE}</button>
+          <a class="icon-btn download" title="Download" href="/reports/${encodeURIComponent(r.filename)}" download="${escapeHtml(r.filename)}">${SVG_DOWNLOAD}</a>
+          <button class="icon-btn delete" title="Delete" data-action="delete" data-filename="${escapeHtml(r.filename)}">${SVG_TRASH}</button>
+        </span>
       </div>
     `).join("");
   } catch (err) {
     reportsList.innerHTML = `<div class="empty-state">Error: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+reportsList.addEventListener("click", async e => {
+  const btn = e.target.closest("[data-action]");
+  if (!btn) return;
+  const filename = btn.dataset.filename;
+  if (btn.dataset.action === "preview") previewReport(filename);
+  if (btn.dataset.action === "delete") {
+    if (!confirm(`Delete "${filename}"?`)) return;
+    try {
+      await apiFetch(`/reports/${encodeURIComponent(filename)}`, { method: "DELETE" });
+      btn.closest(".report-item").remove();
+      if (!reportsList.querySelector(".report-item"))
+        reportsList.innerHTML = '<div class="empty-state">No reports generated yet.</div>';
+    } catch (err) {
+      alert(`Delete failed: ${err.message}`);
+    }
+  }
+});
+
+// ── Preview modal ──────────────────────────────────────────────────────────
+
+const previewModal = document.getElementById("preview-modal");
+const previewTitle = document.getElementById("preview-title");
+const previewBody  = document.getElementById("preview-body");
+
+function closePreview() { previewModal.hidden = true; previewBody.innerHTML = ""; }
+
+document.getElementById("preview-close").addEventListener("click", closePreview);
+previewModal.addEventListener("click", e => { if (e.target === previewModal) closePreview(); });
+
+async function previewReport(filename) {
+  const ext = filename.slice(filename.lastIndexOf(".")).toLowerCase();
+  previewTitle.textContent = filename;
+  previewBody.innerHTML = '<span class="spinner"></span> Loading…';
+  previewModal.hidden = false;
+
+  if (ext === ".docx") {
+    previewBody.innerHTML = '<span class="preview-unavailable">DOCX preview is not available in the browser — use the download button to open the file.</span>';
+    return;
+  }
+
+  try {
+    const res = await fetch(`/reports/${encodeURIComponent(filename)}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const text = await res.text();
+
+    if (ext === ".html") {
+      previewBody.innerHTML = `<iframe srcdoc="${escapeHtml(text)}"></iframe>`;
+    } else {
+      previewBody.textContent = text;
+    }
+  } catch (err) {
+    previewBody.innerHTML = `<span class="preview-unavailable">Could not load preview: ${escapeHtml(err.message)}</span>`;
   }
 }
 

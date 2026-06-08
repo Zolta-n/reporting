@@ -446,3 +446,115 @@ textarea { resize: vertical; }
   color: var(--text-muted);
   font-size: 0.9rem;
 }
+
+/* ── Report action icons ─────────────────────────────────────────── */
+.report-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.report-name { flex: 1; min-width: 0; }
+.report-name a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+  word-break: break-all;
+}
+.report-name a:hover { text-decoration: underline; }
+
+.report-actions { display: flex; gap: 0.15rem; align-items: center; flex-shrink: 0; }
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  background: none;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: background 0.12s, color 0.12s;
+  padding: 0;
+}
+.icon-btn:hover { background: var(--bg); }
+.icon-btn.preview:hover  { color: var(--accent); }
+.icon-btn.download:hover { color: var(--accent); }
+.icon-btn.delete:hover   { color: var(--danger); }
+.icon-btn svg { width: 16px; height: 16px; }
+
+/* ── Preview modal ───────────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modal-overlay[hidden] { display: none; }
+
+.modal-box {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  width: 100%;
+  max-width: 760px;
+  max-height: 82vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.875rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+  color: var(--text-muted);
+  line-height: 1;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+}
+.modal-close:hover { background: var(--bg); color: var(--text); }
+
+.modal-body {
+  padding: 1.25rem;
+  overflow-y: auto;
+  font-size: 0.875rem;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  font-family: ui-monospace, "Cascadia Code", monospace;
+  color: var(--text);
+  flex: 1;
+}
+
+.modal-body iframe {
+  width: 100%;
+  height: 60vh;
+  border: none;
+}
+
+.modal-body .preview-unavailable {
+  font-family: inherit;
+  color: var(--text-muted);
+  font-style: italic;
+  white-space: normal;
+}

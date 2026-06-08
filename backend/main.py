@@ -218,6 +218,15 @@ def download_report(filename: str):
     return FileResponse(str(p), filename=filename)
 
 
+@app.delete("/reports/{filename}")
+def delete_report(filename: str):
+    p = REPORTS_DIR / filename
+    if not p.exists() or not p.is_file():
+        raise HTTPException(status_code=404, detail="Report not found.")
+    p.unlink()
+    return {"ok": True}
+
+
 # ---------------------------------------------------------------------------
 # Templates
 # ---------------------------------------------------------------------------
