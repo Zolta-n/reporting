@@ -371,6 +371,12 @@ async function previewReport(filename) {
   previewBody.innerHTML = '<span class="spinner"></span> Loading…';
   previewModal.hidden = false;
 
+  if (ext === ".pdf") {
+    previewBody.style.whiteSpace = "normal";
+    previewBody.innerHTML = `<iframe src="/reports/${encodeURIComponent(filename)}"></iframe>`;
+    return;
+  }
+
   try {
     const res = await fetch(`/reports/${encodeURIComponent(filename)}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -408,21 +414,21 @@ document.getElementById("btn-weekly").addEventListener("click", async () => {
     if (startVal) body.start_date = new Date(startVal).toISOString();
     if (endVal) body.end_date = new Date(endVal + "T23:59:59").toISOString();
 
-    const result = await apiFetch("/reports/weekly", {
+    const result = await apiFetch("/reports/intermediate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
 
     showStatus(reportStatus,
-      `Weekly report generated: <a href="/reports/${encodeURIComponent(result.filename)}" download>${escapeHtml(result.filename)}</a>`,
+      `Intermediate report generated: <a href="/reports/${encodeURIComponent(result.filename)}" download>${escapeHtml(result.filename)}</a>`,
       "success");
     loadReports();
   } catch (err) {
     showStatus(reportStatus, escapeHtml(err.message), "error");
   } finally {
     btn.disabled = false;
-    btn.textContent = "Generate Weekly Report";
+    btn.textContent = "Generate Intermediate Report";
   }
 });
 

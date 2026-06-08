@@ -164,20 +164,20 @@ def remove_entry(entry_id: str, db: Session = Depends(get_db)):
 # ---------------------------------------------------------------------------
 
 
-class WeeklyReportRequest(BaseModel):
+class IntermediateReportRequest(BaseModel):
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
 
 
-@app.post("/reports/weekly")
-def generate_weekly(
-    req: WeeklyReportRequest = WeeklyReportRequest(),
+@app.post("/reports/intermediate")
+def generate_intermediate(
+    req: IntermediateReportRequest = IntermediateReportRequest(),
     db: Session = Depends(get_db),
 ):
-    from .reports.weekly import generate_weekly_report
+    from .reports.intermediate import generate_intermediate_report
 
     entries = get_entries(db)
-    output_path = generate_weekly_report(entries, req.start_date, req.end_date)
+    output_path = generate_intermediate_report(entries, req.start_date, req.end_date)
     return {"filename": output_path.name}
 
 
