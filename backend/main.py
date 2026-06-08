@@ -274,6 +274,14 @@ def template_status():
 # Frontend static files — must be mounted LAST
 # ---------------------------------------------------------------------------
 
+@app.middleware("http")
+async def no_cache_frontend(request, call_next):
+    response = await call_next(request)
+    path = request.url.path
+    if path == "/" or path.endswith((".html", ".js", ".css")):
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    return response
+
 _frontend_dir = Path(__file__).parent.parent / "frontend"
 if _frontend_dir.exists():
     app.mount("/", StaticFiles(directory=str(_frontend_dir), html=True), name="frontend")
