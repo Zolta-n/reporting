@@ -53,6 +53,33 @@ def startup() -> None:
 # ---------------------------------------------------------------------------
 
 
+class CleanupRequest(BaseModel):
+    content: str
+
+
+@app.post("/entries/cleanup")
+def cleanup_entry(req: CleanupRequest):
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=503, detail="API key not configured.")
+    try:
+        import anthropic
+        client = anthropic.Anthropic(api_key=api_key)
+        msg = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=1000,
+            messages=[{"role": "user", "content": (
+                "Clean up the following text. Remove filler words, false starts, "
+                "incomplete sentences, verbal corrections, and repetitions. "
+                "Preserve all factual content, names, numbers, and business information. "
+                "Return only the cleaned text, no explanation.\n\n" + req.content
+            )}],
+        )
+        return {"content": msg.content[0].text.strip()}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
 class TextEntryRequest(BaseModel):
     content: str
     source: str = "manual"

@@ -31,7 +31,13 @@
     <div id="sub-note" class="sub-panel active">
       <form id="form-note" class="entry-form">
         <label>Content
-          <textarea id="note-content" rows="6" placeholder="Type or paste your note here…" required></textarea>
+          <div class="dictation-wrap">
+            <textarea id="note-content" rows="6" placeholder="Type or paste your note here…" required></textarea>
+            <span class="dictation-btns">
+              <button type="button" class="icon-btn mic-btn" id="mic-note" title="Dictate" hidden></button>
+              <button type="button" class="icon-btn cleanup-btn" id="cleanup-note" title="Clean up with AI"></button>
+            </span>
+          </div>
         </label>
         <div class="form-row">
           <label>Tags (comma-separated)
@@ -49,7 +55,13 @@
     <div id="sub-email" class="sub-panel">
       <form id="form-email" class="entry-form">
         <label>Paste email content (raw headers + body)
-          <textarea id="email-content" rows="10" placeholder="Paste the full email here (From:, Subject:, body…)" required></textarea>
+          <div class="dictation-wrap">
+            <textarea id="email-content" rows="10" placeholder="Paste the full email here (From:, Subject:, body…)" required></textarea>
+            <span class="dictation-btns">
+              <button type="button" class="icon-btn mic-btn" id="mic-email" title="Dictate" hidden></button>
+              <button type="button" class="icon-btn cleanup-btn" id="cleanup-email" title="Clean up with AI"></button>
+            </span>
+          </div>
         </label>
         <div class="form-row">
           <label>Sender (source)

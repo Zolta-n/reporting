@@ -45,6 +45,93 @@ function escapeHtml(str) {
     .replace(/"/g, "&quot;");
 }
 
+// ── Dictation ─────────────────────────────────────────────────────────────
+
+function setupDictation() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return;
+
+  const recognition = new SR();
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  recognition.lang = "en-US";
+
+  let activeTextarea = null;
+  let activeBtn = null;
+  let recording = false;
+
+  recognition.onresult = e => {
+    let finals = "";
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) finals += e.results[i][0].transcript + " ";
+    }
+    if (finals && activeTextarea) {
+      activeTextarea.value += (activeTextarea.value.length ? " " : "") + finals.trim();
+    }
+  };
+
+  recognition.onend = () => { if (recording) recognition.start(); };
+
+  function stopRecording() {
+    recording = false;
+    recognition.stop();
+    if (activeBtn) activeBtn.classList.remove("recording");
+    activeBtn = null;
+    activeTextarea = null;
+  }
+
+  function toggleMic(btn, textarea) {
+    if (recording && activeTextarea === textarea) {
+      stopRecording();
+    } else {
+      if (recording) stopRecording();
+      activeTextarea = textarea;
+      activeBtn = btn;
+      recording = true;
+      recognition.start();
+      btn.classList.add("recording");
+    }
+  }
+
+  [["mic-note", "note-content"], ["mic-email", "email-content"]].forEach(([btnId, taId]) => {
+    const btn = document.getElementById(btnId);
+    btn.innerHTML = SVG_MIC;
+    btn.hidden = false;
+    btn.addEventListener("click", () => toggleMic(btn, document.getElementById(taId)));
+  });
+}
+
+// ── AI cleanup ─────────────────────────────────────────────────────────────
+
+function setupCleanup() {
+  [["cleanup-note", "note-content"], ["cleanup-email", "email-content"]].forEach(([btnId, taId]) => {
+    const btn = document.getElementById(btnId);
+    btn.innerHTML = SVG_WAND;
+    btn.addEventListener("click", async () => {
+      const ta = document.getElementById(taId);
+      if (!ta.value.trim()) return;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>';
+      try {
+        const result = await apiFetch("/entries/cleanup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ content: ta.value }),
+        });
+        ta.value = result.content;
+      } catch (err) {
+        alert(`Cleanup failed: ${err.message}`);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = SVG_WAND;
+      }
+    });
+  });
+}
+
+setupDictation();
+setupCleanup();
+
 // ── Tab switching ──────────────────────────────────────────────────────────
 
 document.querySelectorAll(".tab-btn").forEach(btn => {
@@ -305,6 +392,9 @@ const reportsList = document.getElementById("reports-list");
 const now = new Date();
 document.getElementById("monthly-year").value = now.getFullYear();
 document.getElementById("monthly-month").value = now.getMonth() + 1;
+
+const SVG_MIC = `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="6" height="9" rx="3"/><path d="M4 10a6 6 0 0 0 12 0"/><line x1="10" y1="16" x2="10" y2="18"/><line x1="7" y1="18" x2="13" y2="18"/></svg>`;
+const SVG_WAND = `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17L11 9"/><path d="M11 3l1.5 1.5L11 6 9.5 4.5z"/><path d="M14 6l1.5 1.5L14 9l-1.5-1.5z"/><path d="M8 3l.5 1L8 5l-1-.5z"/><path d="M15 11l.5 1-.5 1-1-.5z"/></svg>`;
 
 const SVG_EYE = `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M1 10s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6z"/><circle cx="10" cy="10" r="2.5"/></svg>`;
 const SVG_DOWNLOAD = `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3v10M6 9l4 4 4-4"/><path d="M3 15h14"/></svg>`;
