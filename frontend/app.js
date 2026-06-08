@@ -95,6 +95,7 @@ function setupDictation() {
 
   [["mic-note", "note-content"], ["mic-email", "email-content"]].forEach(([btnId, taId]) => {
     const btn = document.getElementById(btnId);
+    if (!btn) return;
     btn.innerHTML = SVG_MIC;
     btn.hidden = false;
     btn.addEventListener("click", () => toggleMic(btn, document.getElementById(taId)));
@@ -106,6 +107,7 @@ function setupDictation() {
 function setupCleanup() {
   [["cleanup-note", "note-content"], ["cleanup-email", "email-content"]].forEach(([btnId, taId]) => {
     const btn = document.getElementById(btnId);
+    if (!btn) return;
     btn.innerHTML = SVG_WAND;
     btn.addEventListener("click", async () => {
       const ta = document.getElementById(taId);
