@@ -371,19 +371,22 @@ async function previewReport(filename) {
   previewBody.innerHTML = '<span class="spinner"></span> Loading…';
   previewModal.hidden = false;
 
-  if (ext === ".docx") {
-    previewBody.innerHTML = '<span class="preview-unavailable">DOCX preview is not available in the browser — use the download button to open the file.</span>';
-    return;
-  }
-
   try {
     const res = await fetch(`/reports/${encodeURIComponent(filename)}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const text = await res.text();
 
-    if (ext === ".html") {
+    if (ext === ".docx") {
+      const arrayBuffer = await res.arrayBuffer();
+      const result = await mammoth.convertToHtml({ arrayBuffer });
+      previewBody.style.whiteSpace = "normal";
+      previewBody.innerHTML = `<div class="docx-preview">${result.value}</div>`;
+    } else if (ext === ".html") {
+      const text = await res.text();
+      previewBody.style.whiteSpace = "normal";
       previewBody.innerHTML = `<iframe srcdoc="${escapeHtml(text)}"></iframe>`;
     } else {
+      const text = await res.text();
+      previewBody.style.whiteSpace = "";
       previewBody.textContent = text;
     }
   } catch (err) {

@@ -552,6 +552,27 @@ textarea { resize: vertical; }
   border: none;
 }
 
+.modal-body .docx-preview {
+  font-family: inherit;
+  white-space: normal;
+  line-height: 1.6;
+}
+.modal-body .docx-preview p { margin-bottom: 0.75em; }
+.modal-body .docx-preview h1, .modal-body .docx-preview h2, .modal-body .docx-preview h3 {
+  font-weight: 600;
+  margin: 1em 0 0.4em;
+}
+.modal-body .docx-preview table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-bottom: 1em;
+  font-size: 0.85em;
+}
+.modal-body .docx-preview td, .modal-body .docx-preview th {
+  border: 1px solid var(--border);
+  padding: 0.35rem 0.6rem;
+}
+
 .modal-body .preview-unavailable {
   font-family: inherit;
   color: var(--text-muted);
