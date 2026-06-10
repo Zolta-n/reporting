@@ -143,6 +143,7 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
     if (btn.dataset.tab === "browse") loadEntries();
     if (btn.dataset.tab === "reports") loadReports();
     if (btn.dataset.tab === "template") checkTemplate();
+    if (btn.dataset.tab === "finals") loadFinals();
   });
 });
 
@@ -192,6 +193,7 @@ function setupDropZone(zoneId, inputId, labelId) {
 
 setupDropZone("drop-zone", "file-input", "drop-label");
 setupDropZone("template-drop-zone", "template-file-input", "template-drop-label");
+setupDropZone("finals-drop-zone", "finals-file-input", "finals-drop-label");
 
 // ── Note form ──────────────────────────────────────────────────────────────
 
@@ -396,6 +398,7 @@ const SVG_MIC = `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stro
 const SVG_WAND = `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17L11 9"/><path d="M11 3l1.5 1.5L11 6 9.5 4.5z"/><path d="M14 6l1.5 1.5L14 9l-1.5-1.5z"/><path d="M8 3l.5 1L8 5l-1-.5z"/><path d="M15 11l.5 1-.5 1-1-.5z"/></svg>`;
 
 const SVG_EYE = `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M1 10s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6z"/><circle cx="10" cy="10" r="2.5"/></svg>`;
+const SVG_LEARN = `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2a5 5 0 0 1 3.5 8.5c-.5.5-.7 1.1-.7 1.5v1H7.2v-1c0-.4-.2-1-.7-1.5A5 5 0 0 1 10 2z"/><line x1="8" y1="16" x2="12" y2="16"/><line x1="8.5" y1="18" x2="11.5" y2="18"/></svg>`;
 const SVG_DOWNLOAD = `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3v10M6 9l4 4 4-4"/><path d="M3 15h14"/></svg>`;
 const SVG_TRASH = `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h12M8 6V4h4v2M7 6l1 10h4l1-10"/></svg>`;
 
@@ -606,6 +609,193 @@ document.getElementById("btn-download-template").addEventListener("click", async
     URL.revokeObjectURL(url);
   } catch (err) {
     alert(`Download failed: ${err.message}`);
+  }
+});
+
+// ── Finals ────────────────────────────────────────────────────────────────
+
+const finalsStatus = document.getElementById("finals-status");
+const finalsList   = document.getElementById("finals-list");
+const lessonsPanel = document.getElementById("lessons-panel");
+const lessonsList  = document.getElementById("lessons-list");
+const lessonsTitle = document.getElementById("lessons-title");
+const lessonsStatus = document.getElementById("lessons-status");
+
+const MONTH_NAMES = ["", "January", "February", "March", "April", "May", "June",
+                     "July", "August", "September", "October", "November", "December"];
+
+document.getElementById("finals-year").value = now.getFullYear();
+document.getElementById("finals-month").value = now.getMonth() + 1;
+
+async function loadFinals() {
+  finalsList.innerHTML = '<div class="empty-state"><span class="spinner"></span> Loading…</div>';
+  try {
+    const finals = await apiFetch("/reports/finals");
+    if (!finals.length) {
+      finalsList.innerHTML = '<div class="empty-state">No final reports uploaded yet.</div>';
+      return;
+    }
+    finalsList.innerHTML = finals.map(f => {
+      const label = f.year && f.month ? `${MONTH_NAMES[f.month]} ${f.year}` : f.filename;
+      const ext = f.filename.slice(f.filename.lastIndexOf(".") + 1).toUpperCase();
+      const learnDisabled = !f.has_generated
+        ? 'disabled title="No generated report found for this month"' : "";
+      return `
+        <div class="report-item" data-filename="${escapeHtml(f.filename)}">
+          <span class="report-name">
+            <span class="entry-type-badge badge-file">${escapeHtml(ext)}</span>
+            <a href="/reports/finals/${encodeURIComponent(f.filename)}" download="${escapeHtml(f.filename)}">${escapeHtml(label)}</a>
+            ${!f.has_generated ? '<span class="hint" style="margin-left:.5rem">(no generated counterpart)</span>' : ""}
+          </span>
+          <span class="report-size">${fmtSize(f.size)}</span>
+          <span class="report-actions">
+            <a class="icon-btn download" title="Download" href="/reports/finals/${encodeURIComponent(f.filename)}" download="${escapeHtml(f.filename)}">${SVG_DOWNLOAD}</a>
+            <button class="icon-btn learn" title="Compare &amp; Learn" data-action="learn" data-year="${f.year}" data-month="${f.month}" ${learnDisabled}>${SVG_LEARN}</button>
+            <button class="icon-btn delete" title="Delete" data-action="delete-final" data-filename="${escapeHtml(f.filename)}">${SVG_TRASH}</button>
+          </span>
+        </div>`;
+    }).join("");
+  } catch (err) {
+    finalsList.innerHTML = `<div class="empty-state">Error: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+finalsList.addEventListener("click", async e => {
+  const btn = e.target.closest("[data-action]");
+  if (!btn) return;
+  if (btn.dataset.action === "delete-final") {
+    const filename = btn.dataset.filename;
+    if (!confirm(`Delete "${filename}"?`)) return;
+    try {
+      await apiFetch(`/reports/finals/${encodeURIComponent(filename)}`, { method: "DELETE" });
+      loadFinals();
+      lessonsPanel.classList.remove("visible");
+    } catch (err) {
+      alert(`Delete failed: ${err.message}`);
+    }
+  }
+  if (btn.dataset.action === "learn") {
+    compareFinal(parseInt(btn.dataset.year), parseInt(btn.dataset.month));
+  }
+});
+
+document.getElementById("btn-upload-final").addEventListener("click", async () => {
+  const fileInput = document.getElementById("finals-file-input");
+  const year  = parseInt(document.getElementById("finals-year").value);
+  const month = parseInt(document.getElementById("finals-month").value);
+  const btn   = document.getElementById("btn-upload-final");
+
+  if (!fileInput.files.length) {
+    showStatus(finalsStatus, "Please select a file.", "error");
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("file", fileInput.files[0]);
+  formData.append("year", year);
+  formData.append("month", month);
+
+  try {
+    clearStatus(finalsStatus);
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Uploading…';
+    await apiFetch("/reports/finals", { method: "POST", body: formData });
+    showStatus(finalsStatus, "Final report uploaded.", "success");
+    document.getElementById("finals-file-input").value = "";
+    document.getElementById("finals-drop-label").innerHTML =
+      'Drop a .md, .html, or .docx file here or <u>click to browse</u>';
+    loadFinals();
+  } catch (err) {
+    showStatus(finalsStatus, escapeHtml(err.message), "error");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Upload Final";
+  }
+});
+
+let _learnYear = null;
+let _learnMonth = null;
+
+async function compareFinal(year, month) {
+  const btn = finalsList.querySelector(
+    `[data-action="learn"][data-year="${year}"][data-month="${month}"]`
+  );
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>'; }
+  lessonsPanel.classList.remove("visible");
+  clearStatus(finalsStatus);
+
+  try {
+    const result = await apiFetch(`/reports/learn/${year}/${month}`, { method: "POST" });
+    _learnYear = year;
+    _learnMonth = month;
+    lessonsTitle.textContent =
+      `Lessons from ${MONTH_NAMES[month]} ${year} — review before saving`;
+    renderLessons(result.lessons);
+    lessonsPanel.classList.add("visible");
+    lessonsPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+  } catch (err) {
+    showStatus(finalsStatus, `Compare failed: ${escapeHtml(err.message)}`, "error");
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = SVG_LEARN; }
+  }
+}
+
+function renderLessons(lessons) {
+  lessonsList.innerHTML = lessons.map((lesson, i) => `
+    <div class="lesson-item" data-index="${i}">
+      <textarea rows="2">${escapeHtml(lesson)}</textarea>
+      <button class="icon-btn delete" data-remove-lesson title="Remove">${SVG_TRASH}</button>
+    </div>`).join("");
+  lessonsList.querySelectorAll("[data-remove-lesson]").forEach(btn => {
+    btn.addEventListener("click", () => btn.closest(".lesson-item").remove());
+  });
+}
+
+document.getElementById("btn-add-lesson").addEventListener("click", () => {
+  const div = document.createElement("div");
+  div.className = "lesson-item";
+  div.innerHTML =
+    `<textarea rows="2" placeholder="Add a lesson…"></textarea>` +
+    `<button class="icon-btn delete" data-remove-lesson title="Remove">${SVG_TRASH}</button>`;
+  div.querySelector("[data-remove-lesson]").addEventListener("click", () => div.remove());
+  lessonsList.appendChild(div);
+  div.querySelector("textarea").focus();
+});
+
+document.getElementById("btn-discard-lessons").addEventListener("click", () => {
+  lessonsPanel.classList.remove("visible");
+  lessonsList.innerHTML = "";
+});
+
+document.getElementById("btn-save-lessons").addEventListener("click", async () => {
+  const lessons = Array.from(lessonsList.querySelectorAll("textarea"))
+    .map(ta => ta.value.trim())
+    .filter(Boolean);
+
+  if (!lessons.length) {
+    showStatus(lessonsStatus, "No lessons to save.", "error");
+    return;
+  }
+
+  const btn = document.getElementById("btn-save-lessons");
+  try {
+    clearStatus(lessonsStatus);
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Saving…';
+    await apiFetch(`/reports/learn/${_learnYear}/${_learnMonth}/apply`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ lessons }),
+    });
+    const n = lessons.length;
+    showStatus(lessonsStatus,
+      `${n} lesson${n === 1 ? "" : "s"} saved to REPORT_STYLE.md.`, "success");
+    setTimeout(() => lessonsPanel.classList.remove("visible"), 2500);
+  } catch (err) {
+    showStatus(lessonsStatus, escapeHtml(err.message), "error");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Save to REPORT_STYLE.md";
   }
 });
 

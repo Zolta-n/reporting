@@ -595,3 +595,46 @@ textarea { resize: vertical; }
   font-style: italic;
   white-space: normal;
 }
+
+/* ── Finals / Lessons panel ──────────────────────────────────────── */
+.lessons-panel {
+  display: none;
+  margin-top: 2rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  box-shadow: var(--shadow);
+}
+
+.lessons-panel.visible { display: block; }
+
+.lessons-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.lessons-header h3 { font-size: 1rem; font-weight: 600; }
+
+.lesson-item {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+}
+
+.lesson-item textarea {
+  flex: 1;
+  resize: vertical;
+  min-height: 2.5rem;
+}
+
+.lessons-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.icon-btn.learn:hover { color: #7c3aed; }

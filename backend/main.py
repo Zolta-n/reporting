@@ -1,4 +1,5 @@
 import os
+import re
 import shutil
 from datetime import datetime
 from pathlib import Path
@@ -32,6 +33,8 @@ TEMPLATES_DIR = Path("templates")
 TEMPLATES_DIR.mkdir(exist_ok=True)
 REPORTS_DIR = Path("reports")
 REPORTS_DIR.mkdir(exist_ok=True)
+FINALS_DIR = REPORTS_DIR / "finals"
+FINALS_DIR.mkdir(exist_ok=True)
 
 app = FastAPI(title="Reporting App", version="1.0.0")
 
@@ -235,6 +238,99 @@ def list_reports():
         for f in files
         if f.is_file()
     ]
+
+
+# ---------------------------------------------------------------------------
+# Final reports
+# ---------------------------------------------------------------------------
+
+FINALS_ALLOWED = {".md", ".html", ".docx"}
+
+
+@app.post("/reports/finals")
+async def upload_final(
+    file: UploadFile = File(...),
+    year: int = Form(...),
+    month: int = Form(...),
+):
+    suffix = Path(file.filename).suffix.lower()
+    if suffix not in FINALS_ALLOWED:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported format '{suffix}'. Allowed: .md, .html, .docx",
+        )
+    for ext in FINALS_ALLOWED:
+        (FINALS_DIR / f"monthly_{year}-{month:02d}_final{ext}").unlink(missing_ok=True)
+    save_path = FINALS_DIR / f"monthly_{year}-{month:02d}_final{suffix}"
+    with open(save_path, "wb") as f:
+        shutil.copyfileobj(file.file, f)
+    return {"ok": True, "filename": save_path.name}
+
+
+@app.get("/reports/finals")
+def list_finals():
+    from .reports.compare import find_latest_generated
+    files = sorted(FINALS_DIR.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
+    result = []
+    for f in files:
+        if not f.is_file():
+            continue
+        m = re.match(r"monthly_(\d{4})-(\d{2})_final\.\w+", f.name)
+        year = int(m.group(1)) if m else None
+        month = int(m.group(2)) if m else None
+        has_generated = bool(find_latest_generated(year, month)) if year and month else False
+        result.append({
+            "filename": f.name,
+            "size": f.stat().st_size,
+            "year": year,
+            "month": month,
+            "has_generated": has_generated,
+        })
+    return result
+
+
+@app.get("/reports/finals/{filename}")
+def download_final(filename: str):
+    p = FINALS_DIR / filename
+    if not p.exists() or not p.is_file():
+        raise HTTPException(status_code=404, detail="Final report not found.")
+    return FileResponse(str(p), filename=filename)
+
+
+@app.delete("/reports/finals/{filename}")
+def delete_final(filename: str):
+    p = FINALS_DIR / filename
+    if not p.exists() or not p.is_file():
+        raise HTTPException(status_code=404, detail="Final report not found.")
+    p.unlink()
+    return {"ok": True}
+
+
+class ApplyLessonsRequest(BaseModel):
+    lessons: list[str]
+
+
+@app.post("/reports/learn/{year}/{month}")
+def compare_reports(year: int, month: int):
+    from .reports.compare import extract_lessons
+    result = extract_lessons(year, month)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@app.post("/reports/learn/{year}/{month}/apply")
+def apply_lessons(year: int, month: int, req: ApplyLessonsRequest):
+    if not req.lessons:
+        raise HTTPException(status_code=400, detail="No lessons provided.")
+    style_path = Path("REPORT_STYLE.md")
+    month_label = f"{year}-{month:02d}"
+    lines = [f"\n\n## Lessons — {month_label}\n"]
+    for lesson in req.lessons:
+        lines.append(f"- {lesson.strip()}\n")
+    with open(style_path, "a", encoding="utf-8") as f:
+        f.writelines(lines)
+    return {"ok": True, "appended": len(req.lessons)}
 
 
 @app.get("/reports/{filename}")

@@ -9,7 +9,7 @@
 <body>
   <header>
     <h1>Reporting App</h1>
-    <p class="tagline">Collect, deduplicate, create reports. <span style="font-size:0.75rem;color:#9ca3af">v2026-06-08c</span></p>
+    <p class="tagline">Collect, deduplicate, create reports. <span style="font-size:0.75rem;color:#9ca3af">v2026-06-10</span></p>
   </header>
 
   <nav class="tabs" role="tablist">
@@ -17,6 +17,7 @@
     <button class="tab-btn" data-tab="browse" role="tab">Browse</button>
     <button class="tab-btn" data-tab="reports" role="tab">Reports</button>
     <button class="tab-btn" data-tab="template" role="tab">Template</button>
+    <button class="tab-btn" data-tab="finals" role="tab">Finals</button>
   </nav>
 
   <!-- ===== ADD ENTRY ===== -->
@@ -199,6 +200,53 @@
 
       <h3>Download Current Template</h3>
       <button id="btn-download-template" class="btn-secondary">Download</button>
+    </div>
+  </section>
+
+  <!-- ===== FINALS ===== -->
+  <section id="tab-finals" class="tab-panel">
+    <div class="report-block">
+      <h2>Upload Final Report</h2>
+      <p class="hint">Upload your edited monthly report. One final per month — uploading again replaces the previous.</p>
+      <div class="form-row">
+        <label>Year
+          <input type="number" id="finals-year" min="2020" max="2099" />
+        </label>
+        <label>Month
+          <select id="finals-month">
+            <option value="1">January</option><option value="2">February</option>
+            <option value="3">March</option><option value="4">April</option>
+            <option value="5">May</option><option value="6">June</option>
+            <option value="7">July</option><option value="8">August</option>
+            <option value="9">September</option><option value="10">October</option>
+            <option value="11">November</option><option value="12">December</option>
+          </select>
+        </label>
+      </div>
+      <label class="file-drop-zone" id="finals-drop-zone">
+        <span id="finals-drop-label">Drop a .md, .html, or .docx file here or <u>click to browse</u></span>
+        <input type="file" id="finals-file-input" accept=".md,.html,.docx" hidden />
+      </label>
+      <button id="btn-upload-final" class="btn-primary" style="margin-top:.75rem">Upload Final</button>
+    </div>
+
+    <div id="finals-status" class="status-msg" aria-live="polite"></div>
+
+    <h2 class="section-title">Final Reports</h2>
+    <div id="finals-list" class="reports-list"></div>
+
+    <div id="lessons-panel" class="lessons-panel">
+      <div class="lessons-header">
+        <h3 id="lessons-title">Lessons — review before saving</h3>
+        <button id="btn-discard-lessons" class="btn-secondary">Discard</button>
+      </div>
+      <p class="hint">Edit or remove lessons, then save to append them to <code>REPORT_STYLE.md</code>.</p>
+      <div id="lessons-list" style="margin-top:1rem"></div>
+      <div class="lessons-actions">
+        <button id="btn-add-lesson" class="btn-secondary">+ Add lesson</button>
+        <button id="btn-save-lessons" class="btn-primary">Save to REPORT_STYLE.md</button>
+      </div>
+      <div id="lessons-status" class="status-msg" aria-live="polite"></div>
     </div>
   </section>
 
