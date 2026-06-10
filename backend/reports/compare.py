@@ -74,21 +74,33 @@ def extract_lessons(year: int, month: int) -> dict:
         msg = client.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=1000,
-            messages=[{"role": "user", "content": prompt}],
+            messages=[
+                {"role": "user", "content": prompt},
+                {"role": "assistant", "content": "["},
+            ],
         )
-        text = msg.content[0].text.strip()
+        # Prepend the prefilled "[" that was used to steer the response
+        text = "[" + msg.content[0].text.strip()
+        # Strip markdown code fences if somehow still present
         text = re.sub(r"^```[a-z]*\n?", "", text)
         text = re.sub(r"\n?```$", "", text)
         text = text.strip()
-        lessons = json.loads(text)
+
+        # Try direct parse first; if that fails, extract the first [...] array found
+        try:
+            lessons = json.loads(text)
+        except json.JSONDecodeError:
+            m = re.search(r"\[.*?\]", text, re.DOTALL)
+            if not m:
+                return {"error": "AI response did not contain a JSON array. Try again."}
+            lessons = json.loads(m.group(0))
+
         if not isinstance(lessons, list):
             lessons = [str(lessons)]
         return {
-            "lessons": lessons,
+            "lessons": [str(l) for l in lessons if str(l).strip()],
             "generated": generated_path.name,
             "final": final_path.name,
         }
-    except json.JSONDecodeError:
-        return {"error": "AI response was not valid JSON. Try again."}
     except Exception as exc:
         return {"error": str(exc)}
